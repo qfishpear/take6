@@ -4,6 +4,7 @@ import copy
 import random
 import BaseAgent
 import sys
+import numpy as np
 sys.path.append('..')
 from agents.RandomAgent import RandomAgent
 from agents.KeyboardAgent import KeyboardAgent
@@ -90,7 +91,26 @@ class GameEmulator(object):
 
     def emulate(self, num_round = 1):
         for i in range(num_round):
-           print generate_midgame_env(num_agent_init_card)["scores"]
+           print self.generate_midgame_env(num_agent_init_card)["scores"]
+
+    def test_single(self, num_round = 100):
+        cnt_win = [0,] * len(self.agent_list)
+        for i in range(num_round):
+            scores = self.generate_midgame_env(num_agent_init_card)["scores"]
+            print scores
+            cnt_win[np.argmin(scores)] += 1
+        print cnt_win
+
+    def test_66(self, num_round=100):
+        cnt_win = [0, ] * len(self.agent_list)
+        for i in range(num_round):
+            scores = [0,] * len(self.agent_list)
+            while max(scores) < 66:
+                score = self.generate_midgame_env(num_agent_init_card)["scores"]
+                scores = [scores[j] + score[j] for j in range(len(self.agent_list))]
+            cnt_win[np.argmin(scores)] += 1
+            print "Round %d :" % i, scores
+        print cnt_win
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
+#coding=utf-8
 from __future__ import absolute_import
 from __future__ import print_function
+from keras.models import Sequential
 from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
@@ -16,6 +18,7 @@ sys.path.append( '..' )
 from PIL import Image;
 from pyrl.GameEmulator import GameEmulator
 from agents.RandomAgent import RandomAgent
+from agents.YXJAgent import EasiestAgent
 import pyrl.common
 import random;
 from pyrl.BaseAgent import BaseAgent
@@ -40,26 +43,26 @@ Gamma = 0.9
 Epsilon = 0.1
 
 Env = GameEmulator();
-Env.add_agent(RandomAgent());
 Env.add_agent(RandomAgent())
+Env.add_agent(EasiestAgent())
 
 def normalize(dat) :
     bits = [];
-    status = [[0]*104]*3;
+    status = [[0 for col in range(104)] for row in range(3)]
     for card in range(104) :
         status[dat['state']['card_status'][card]][card] = 1;
     bits = bits + status[0] + status[1] + status[2];
-    stack = [[0]*104]*4;
+    stack = [[0 for col in range(104)] for row in range(4)]
     for i in range(4) :
         stack[i][dat['state']['card_stacks'][i][-1]] = 1;
     bits = bits + stack[0] + stack[1] + stack[2] + stack[3];
-    height = [[0]*5]*4
+    height = [[0 for col in range(5)] for row in range(4)]
     for i in range(4) :
         height[i][len(dat['state']['card_stacks'][i])-1] = 1;
     bits = bits + height[0] + height[1] + height[2] + height[3];
     for i in range(4) :
         bits.append( pyrl.common.count_nimmts(dat['state']['card_stacks'][i]) );
-    choice = [0]*104;
+    choice = [0 for col in range(104)]
     choice[dat['action']] = 1;
     bits = bits + choice;
     return bits;
@@ -95,51 +98,55 @@ def load_data(EPOCH):
         count = 0;
         for choice in choicelist :
             next_dat = {'state':state_next, 'action':choice};
-            if count < 2 :
+            if count < 2:
                 old_pool.append(next_dat);
                 count += 1;
             toFeed.append(normalize(next_dat))
 
         toFeed = np.array(toFeed)
         nextQ = model.predict(toFeed);
-
         data.append(normalize(dat))
         label.append(reward_t[ 0 ] + Gamma * max(nextQ))
     return data,label,old_pool
 
-model = Sequential()
+def get_model():
+    model = Sequential()
 
-model.add(Dense(1024, init='normal', input_dim = 856))
-model.add(Activation('relu'))
+    model.add(Dense(1024, init='normal', input_dim = 856))
+    model.add(Activation('relu'))
 
-model.add(Dense(1024, init='normal'))
-model.add(Activation('relu'))
+    model.add(Dense(1024, init='normal'))
+    model.add(Activation('relu'))
 
-model.add(Dense(512, init='normal'))
-model.add(Activation('relu'))
+    model.add(Dense(512, init='normal'))
+    model.add(Activation('relu'))
 
-model.add(Dense(1, init='normal'))
-#model.add(Activation('softmax'))
+    model.add(Dense(1, init='normal'))
+    return model
 
-#keras.callbacks.EarlyStopping(monitor='val_loss', patience=0, verbose=0)
+if __name__ == "__main__":
+    model = get_model()
+    #model.add(Activation('softmax'))
 
-prop = RMSprop( lr=0.00003, rho=0.9, epsilon=1e-6 )
-print( "start compilation" )
-model.compile(loss='mean_squared_error', optimizer=prop)
+    #keras.callbacks.EarlyStopping(monitor='val_loss', patience=0, verbose=0)
 
-for EPOCH in range( 100 ) :
-    print( "DEALING EPOCH " + str( EPOCH ) );
-    if EPOCH != 0 :
-        print( "generating data" )
-        data, label, data_pool = load_data(EPOCH)
-        data = np.array(data); label = np.array(label);
-        print(data.shape)
-        print( "start loading" )
-        #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
-        print( "start fitting" )
-        his = model.fit(data, label, batch_size=300,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
-        print( "fitting ended" )
-    if EPOCH % 10 == 0 :
-        with open( "models/md.json", "w" ) as f:
-            f.write( model.to_json() )
-        model.save_weights( "models/md" + str(EPOCH) + ".h5" )
+    prop = RMSprop( lr=0.00003, rho=0.9, epsilon=1e-6 )
+    print( "start compilation" )
+    model.compile(loss='mean_squared_error', optimizer=prop)
+
+    for EPOCH in range( 100 ) :
+        print( "DEALING EPOCH " + str( EPOCH ) );
+        if EPOCH != 0 :
+            print( "generating data" )
+            data, label, data_pool = load_data(EPOCH)
+            data = np.array(data); label = np.array(label);
+            print(data.shape)
+            print( "start loading" )
+            #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
+            print( "start fitting" )
+            his = model.fit(data, label, batch_size=300,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
+            print( "fitting ended" )
+        if EPOCH % 10 == 0 :
+            with open( "models/md.json", "w" ) as f:
+                f.write( model.to_json() )
+            model.save_weights( "models/md" + str(EPOCH) + ".h5" )
