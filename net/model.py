@@ -53,9 +53,9 @@ import numpy as np
 
 random.seed(2333)
 num_base_ind = 29
-ind_2_100 = random.sample(list(itertools.permutations(range(num_base_ind),2)),50)
-ind_3_100 = random.sample(list(itertools.permutations(range(num_base_ind),3)),50)
-ind_3_100 = random.sample(list(itertools.permutations(range(num_base_ind),4)),50)
+ind_2 = random.sample(list(itertools.permutations(range(num_base_ind),2)),50)
+ind_3 = random.sample(list(itertools.permutations(range(num_base_ind),3)),50)
+ind_3 = random.sample(list(itertools.permutations(range(num_base_ind),4)),50)
 
 def normalize(dat) :
     bits = [];
@@ -95,9 +95,9 @@ def normalize(dat) :
     for i in range(20):
         for j in range(20, num_base_ind):
             bits.append(int(tmp[i] and tmp[j]))
-    i2 = ind_2_100
-    i3 = ind_3_100
-    i4 = ind_3_100
+    i2 = ind_2
+    i3 = ind_3
+    i4 = ind_3
     for i in range(50):
         bits.append(int(tmp[i2[i][0]] and tmp[i2[i][1]]))
         bits.append(int(tmp[i3[i][0]] and tmp[i3[i][1]] and tmp[i3[i][2]]))

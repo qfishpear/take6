@@ -45,8 +45,8 @@ def load_data(EPOCH):
     old_pool = data_pool;
     random.shuffle(old_pool);
     data = []; label = [];
-    data_pool = [{'state':Env.generate_midgame_env(random.randint(0, pyrl.common.num_agent_init_card - 1))} for i in range( 50 )];
-    data_pool += old_pool[:100];
+    data_pool = [{'state':Env.generate_midgame_env(random.randint(0, pyrl.common.num_agent_init_card - 1))} for i in range( 100 )];
+    data_pool += old_pool[:200];
     for i in range(len(data_pool)) :
         hand_cards = data_pool[i]['state']['hand_cards'][0]
         data_pool[i]['action'] = hand_cards[random.randint(0, len(hand_cards)-1)]
@@ -84,9 +84,11 @@ def load_data(EPOCH):
 
 if __name__ == "__main__":
     model = get_model()
+    #model.load_weights('models/md290.h5');
+
     Env = GameEmulator();
-    #Env.add_agent(NNAgent(model = model))
-    Env.add_agent(EasiestAgent())
+    Env.add_agent(NNAgent(model = model))
+    #Env.add_agent(EasiestAgent())
     Env.add_agent(EasiestAgent())
 
     #model.add(Activation('softmax'))
@@ -99,7 +101,7 @@ if __name__ == "__main__":
 
     random.seed(time.time())
 
-    for EPOCH in range( 300 ) :
+    for EPOCH in range( 1000 ) :
         print( "DEALING EPOCH " + str( EPOCH ) );
         if EPOCH != 0 :
             print( "generating data" )
@@ -113,11 +115,11 @@ if __name__ == "__main__":
             #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
             print( "start fitting" )
             time1 = time.time()
-            his = model.fit(data, label, batch_size=50,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
+            his = model.fit(data, label, batch_size=100,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
             time2 = time.time()
             print("use time:", time2 - time1)
             print( "fitting ended" )
-        if EPOCH % 10 == 0 :
+        if EPOCH % 50 == 0 :
             with open( "models/md.json", "w" ) as f:
                 f.write( model.to_json() )
             model.save_weights( "models/md" + str(EPOCH) + ".h5" )
