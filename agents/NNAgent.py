@@ -23,7 +23,7 @@ class NNAgent(BaseAgent):
             toFeed.append(normalize(next_dat))
         toFeed = np.array(toFeed)
         Q = self.model.predict(toFeed)
-        return hand_card[np.argmin(Q)]
+        return hand_card[np.argmax(Q)]
 
 
 
