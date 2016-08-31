@@ -14,14 +14,15 @@ class GameEmulator(object):
 
     def add_agent(self, agent):
         self.agent_list.append(agent)
+        self.num_agents = len(self.agent_list)
 
     def set_agents(self, agents):
         self.agent_list = agents
+        self.num_agents = len(self.agent_list)
 
     def generate_init_env(self):
         random_cards = range(0, num_cards)
         random.shuffle(random_cards)
-        self.num_agents = len(self.agent_list)
         card_stacks = [[random_cards[i],] for i in range(num_card_stack)]
         hand_cards = [sorted(random_cards[num_card_stack + i * num_agent_init_card: num_card_stack + (i+1) * num_agent_init_card]) for i in range(self.num_agents)]
         card_status = [0,]*104
@@ -49,9 +50,8 @@ class GameEmulator(object):
         actions = [(action,0)]
         for i in range(1, self.num_agents):
             game_env["agent_id"] = i
-            for j in range(num_cards):
-                if card_status[j] == 1:
-                    card_status[j] = 0
+            for card in hand_cards[i-1]:
+                card_status[card] = 0
             for card in hand_cards[i]:
                 card_status[card] = 1
             actions.append((self.agent_list[i].policy(game_env), i))
@@ -72,9 +72,8 @@ class GameEmulator(object):
             if target_stack == -1:
                 target_stack = self.agent_list[agent_id].policy_min(game_env)
             card_stacks[target_stack], punishments[agent_id] = add_card(card_stacks[target_stack], card)
-        for i in range(num_cards):
-            if card_status[j] == 1:
-                card_status[j] =0
+        for card in hand_cards[self.num_agents - 1]:
+            card_status[card] = 0
         for card in hand_cards[0]:
             card_status[card] = 1
         game_env['scores'] = [scores[i] + punishments[i] for i in range(self.num_agents)]
@@ -109,7 +108,7 @@ class GameEmulator(object):
                 score = self.generate_midgame_env(num_agent_init_card)["scores"]
                 scores = [scores[j] + score[j] for j in range(len(self.agent_list))]
             cnt_win[np.argmin(scores)] += 1
-            print "Round %d :" % i, scores
+            print "Round %d :" % i, scores, cnt_win
         print cnt_win
 
 

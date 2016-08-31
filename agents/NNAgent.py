@@ -2,14 +2,17 @@ import sys
 sys.path.append("..")
 import numpy as np
 
-from BaseAgent import BaseAgent
-from net.train import normalize, get_model
+from pyrl.BaseAgent import BaseAgent
+from net.model import normalize, get_model
 from IPython import embed
 
 class NNAgent(BaseAgent):
-    def __init__(self,model_path):
+    def __init__(self, model_path = None, model = None):
         self.model = get_model()
-        self.model.load_weights(model_path)
+        if model_path != None:
+            self.model.load_weights(model_path)
+        if model != None:
+            self.model = model
 
     def policy(self, agentEnv):
         agent_id = agentEnv["agent_id"]
@@ -20,7 +23,7 @@ class NNAgent(BaseAgent):
             toFeed.append(normalize(next_dat))
         toFeed = np.array(toFeed)
         Q = self.model.predict(toFeed)
-        return hand_card[np.argmax(Q)]
+        return hand_card[np.argmin(Q)]
 
 
 
