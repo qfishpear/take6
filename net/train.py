@@ -85,7 +85,8 @@ def load_data(EPOCH):
     #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
     old_pool = [];
     for dat in data_pool :  ### data is (state_t, action_t) tuple.
-        state_next, reward_t = Env.execute_action(dat['state'], dat['action'])
+        state_next, reward_t = Env.execute_action(dat['state'], dat['action']);
+        reward_t[ 0 ] *= -1;
         if state_next['hand_cards'][0] == [] :
             data.append(normalize(dat));
             label.append(reward_t[ 0 ]);
