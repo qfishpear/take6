@@ -18,18 +18,12 @@ from pyrl.GameEmulator import GameEmulator
 from agents.RandomAgent import RandomAgent
 import pyrl.common
 import random;
-from pyrl.BaseAgent import BaseAgent 
+from pyrl.BaseAgent import BaseAgent
 from IPython import embed
-class NNAgent(BaseAgent):
-    def __init__(self):
-	pass
-    def policy(self, agentEnv):
-	#if you only use execute_action, you do not need to implement this function
-        pass
 
 '''
 gameEmulator = GameEmulator()
-gameEmulator.add_agent(NNAgent())
+gameEmulator.add_agent(DummyAgent())
 gameEmulator.add_agent(RandomAgent())
 gameEmulator.add_agent(EasiestAgent())
 init_env = gameEmulator.generate_env()
@@ -46,7 +40,7 @@ Gamma = 0.9
 Epsilon = 0.1
 
 Env = GameEmulator();
-Env.add_agent(NNAgent());
+Env.add_agent(RandomAgent());
 Env.add_agent(RandomAgent())
 
 def normalize(dat) :
@@ -76,7 +70,7 @@ def load_data(EPOCH):
     old_pool = data_pool;
     random.shuffle(old_pool);
     data = []; label = [];
-    data_pool = [{'state':Env.generate_env()} for i in range( 50 )];
+    data_pool = [{'state':Env.generate_midgame_env(random.randint(0, pyrl.common.num_agent_init_card - 1))} for i in range( 50 )];
     data_pool += old_pool[:950];
     for i in range(len(data_pool)) :
         hand_cards = data_pool[i]['state']['hand_cards'][0]
@@ -89,15 +83,15 @@ def load_data(EPOCH):
         reward_t[ 0 ] *= -1;
         if state_next['hand_cards'][0] == [] :
             data.append(normalize(dat));
-            label.append(reward_t[ 0 ]);
+            label.append(reward_t[ 0 ]);[ ]
             continue;
         toFeed = [];
-        
+
         if random.uniform(0, 1) < Epsilon :
             choicelist = [ state_next['hand_cards'][0][random.randint(0, len(state_next['hand_cards'][0])-1)] ]
         else :
             choicelist = state_next['hand_cards'][0]
-        
+
         count = 0;
         for choice in choicelist :
             next_dat = {'state':state_next, 'action':choice};
@@ -105,10 +99,10 @@ def load_data(EPOCH):
                 old_pool.append(next_dat);
                 count += 1;
             toFeed.append(normalize(next_dat))
-        
+
         toFeed = np.array(toFeed)
         nextQ = model.predict(toFeed);
-        
+
         data.append(normalize(dat))
         label.append(reward_t[ 0 ] + Gamma * max(nextQ))
     return data,label,old_pool
@@ -125,9 +119,9 @@ model.add(Dense(512, init='normal'))
 model.add(Activation('relu'))
 
 model.add(Dense(1, init='normal'))
-#model.add(Activation('softmax'))                                                                                                                                     
+#model.add(Activation('softmax'))
 
-#keras.callbacks.EarlyStopping(monitor='val_loss', patience=0, verbose=0)                                                                                            
+#keras.callbacks.EarlyStopping(monitor='val_loss', patience=0, verbose=0)
 
 prop = RMSprop( lr=0.00003, rho=0.9, epsilon=1e-6 )
 print( "start compilation" )

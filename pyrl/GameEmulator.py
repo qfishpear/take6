@@ -17,9 +17,7 @@ class GameEmulator(object):
     def set_agents(self, agents):
         self.agent_list = agents
 
-    def generate_env(self, randseed = 0):
-        if randseed != 0:
-            random.seed(randseed)
+    def generate_init_env(self):
         random_cards = range(0, num_cards)
         random.shuffle(random_cards)
         self.num_agents = len(self.agent_list)
@@ -38,6 +36,7 @@ class GameEmulator(object):
             'agent_id': -1,
             'scores' :  [0,] * self.num_agents
         }
+
 
     def execute_action(self, game_env, action):
         #返回新的game_env和每个人获得的牛头数punishments
@@ -80,14 +79,19 @@ class GameEmulator(object):
         game_env['scores'] = [scores[i] + punishments[i] for i in range(self.num_agents)]
         return game_env, punishments
 
+    def generate_midgame_env(self, num_round = num_agent_init_card):
+        #指定num_round可以返回特定轮数过后的局面,默认为玩完一整局
+        game_env = self.generate_init_env()
+        for j in range(num_round):
+            game_env["agent_id"] = 0
+            action0 = self.agent_list[0].policy(game_env)
+            game_env, punishments = self.execute_action(game_env, action0)
+        return game_env
+
     def emulate(self, num_round = 1):
         for i in range(num_round):
-            game_env = self.generate_env(1)
-            for j in range(num_agent_init_card):
-                game_env["agent_id"] = 0
-                action0 = self.agent_list[0].policy(game_env)
-                game_env, punishments = self.execute_action(game_env, action0)
-            print game_env["scores"]
+           print generate_midgame_env(num_agent_init_card)["scores"]
+
 
 if __name__ == "__main__":
     gameEmulator = GameEmulator()
