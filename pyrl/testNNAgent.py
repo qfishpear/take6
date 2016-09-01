@@ -10,4 +10,5 @@ if __name__ == "__main__":
     gameEmulator.add_agent(NNAgent(model_path = "/home/superfish/take6/net/models/"+sys.argv[1]+".h5"))
 #    gameEmulator.add_agent(EasiestAgent2())
     gameEmulator.add_agent(EasiestAgent())
+    #gameEmulator.add_agent(RandomAgent())
     gameEmulator.test_66(1000)

@@ -56,7 +56,7 @@ def load_data(EPOCH):
     #weight_list = [1.5**i for i in range(num_agent_init_card)]
     weight_list = [1 for i in range(num_agent_init_card)]
     data_pool = [{'state':Env.generate_midgame_env(weight_choice(weight_list))} for i in range( 200 )];
-    data_pool += random.sample(old_pool, min(len(old_pool),900));
+    data_pool += random.sample(old_pool, min(len(old_pool),100));
     for i in range(len(data_pool)) :
         hand_cards = data_pool[i]['state']['hand_cards'][0]
         data_pool[i]['action'] = hand_cards[random.randint(0, len(hand_cards)-1)]
@@ -65,7 +65,7 @@ def load_data(EPOCH):
     old_pool = [];
     for dat in data_pool :  ### data is (state_t, action_t) tuple.
         state_next, reward_t = Env.execute_action(dat['state'], dat['action']);
-        reward_t[ 0 ] *= -1;
+        reward = sum(reward_t[1:]) - reward_t[0];
         if state_next['hand_cards'][0] == [] :
             data.append(normalize(dat));
             label.append(reward_t[ 0 ]);[ ]
@@ -87,17 +87,19 @@ def load_data(EPOCH):
 
         toFeed = np.array(toFeed)
         nextQ = model.predict(toFeed);
+        #nextQ_by_emulation = Env.get_Q(state_next, Gamma)
         data.append(normalize(dat))
-        label.append(reward_t[ 0 ] + Gamma * max(nextQ))
+        #print(max(nextQ), nextQ_by_emulation, max(nextQ) + nextQ_by_emulation)
+        label.append(reward + Gamma * (max(nextQ)[0] ))
     return data,label,old_pool
 
 
 if __name__ == "__main__":
     model = get_model()
-    model.load_weights("models/best_3.h5")
+    #model.load_weights("models/best_3.h5")
     Env = GameEmulator();
     Env.add_agent(NNAgent(model = model))
-    Env.add_agent(EasiestAgent())
+    #Env.add_agent(EasiestAgent())
     Env.add_agent(EasiestAgent())
 
     #model.add(Activation('softmax'))
@@ -124,7 +126,7 @@ if __name__ == "__main__":
             #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
             print( "start fitting" )
             time1 = time.time()
-            his = model.fit(data, label, batch_size=300,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
+            his = model.fit(data, label, batch_size=100,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
             time2 = time.time()
             print("use time:", time2 - time1)
             print( "fitting ended" )

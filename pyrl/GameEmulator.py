@@ -37,7 +37,8 @@ class GameEmulator(object):
             'hand_cards' : hand_cards,
             'card_status': card_status,
             'agent_id': 0,
-            'scores' :  [0,] * self.num_agents
+            'scores' :  [0,] * self.num_agents,
+            'cur_round': 0
         }
 
 
@@ -78,7 +79,8 @@ class GameEmulator(object):
         for card in hand_cards[0]:
             card_status[card] = 1
         game_env['scores'] = [scores[i] + punishments[i] for i in range(self.num_agents)]
-        game_env["agent_id"] = 0
+        game_env['agent_id'] = 0
+        game_env['cur_round'] = game_env['cur_round'] + 1
         return game_env, punishments
 
     def generate_midgame_env(self, num_round = num_agent_init_card):
@@ -88,6 +90,16 @@ class GameEmulator(object):
             action0 = self.agent_list[0].policy(game_env)
             game_env, punishments = self.execute_action(game_env, action0)
         return game_env
+
+    def get_Q(self, game_env, Gamma = 0.9):
+        Q = 0.0
+        w = 1.0
+        for j in range(num_agent_init_card - game_env['cur_round']):
+            action0 = self.agent_list[0].policy(game_env)
+            game_env, punishments = self.execute_action(game_env, action0)
+            Q += w * punishments[0]
+            w *= Gamma
+        return -Q
 
     def emulate(self, num_round = 1):
         for i in range(num_round):
