@@ -88,6 +88,16 @@ class GameEmulator(object):
             game_env, punishments = self.execute_action(game_env, action0)
         return game_env
 
+    def execute_last_actions(self, game_env):
+        total_punishments = [0]*self.num_agents
+        for j in range(len(game_env['hand_cards'][0])):
+            game_env["agent_id"] = 0
+            action0 = self.agent_list[0].policy(game_env)
+            game_env, punishments = self.execute_action(game_env, action0)
+            for w in range(self.num_agents):
+                total_punishments[w] += punishments[w]
+        return total_punishments
+
     def emulate(self, num_round = 1):
         for i in range(num_round):
            print self.generate_midgame_env(num_agent_init_card)["scores"]
