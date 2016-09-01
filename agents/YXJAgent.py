@@ -67,3 +67,49 @@ class EasiestAgent(BaseAgent):
 		ret = np.argmin([count_nimmts(s) for s in stacks])
 		
 		return ret
+
+
+class EasiestAgent2(BaseAgent):
+	def policy(self, agentEnv):
+		def evaluate(index):
+			card = cards[index]
+			choices = stacks[np.array([s[-1] < card for s in stacks])]
+
+			if len(choices) == 0:
+				e = (1.0 - card / NUM_CARDS) * min(count_nimmts(s) for s in stacks)
+			else:
+				stack = choices[np.argmax([s[-1] for s in choices])]
+				if len(stack) == STACK_VOL:
+					e = (1.0 - (card - stack[-1]) / NUM_CARDS) * count_nimmts(stack)
+				else:
+					e = ((-0.1 + card - stack[-1]) / NUM_CARDS) / (STACK_VOL - len(stack)) * count_nimmts(stack)
+					next = NUM_CARDS
+					for s in stacks:
+						if s[-1] > card:
+							next = min(next, s[-1])
+					if card != cards[-1]:
+						next = min(next, cards[index + 1])
+					if len(stack) == 4:
+						e -= (next - card - 1.0) / NUM_CARDS * count_nimmts(stack + [card,])
+					else:
+						e += (next - card - 1.0) / NUM_CARDS * count_nimmts(stack + [card,])
+			return e
+
+		STACK_VOL = 5
+		INF = 1e10
+		NUM_CARDS = common.num_cards
+
+		id = agentEnv['agent_id']
+		cards = np.array(agentEnv['hand_cards'][id])
+		stacks = np.array(agentEnv['card_stacks'])
+
+		eval = [evaluate(i) for i in range(len(cards))]
+		ret = cards[np.argmin([evaluate(i) for i in range(len(cards))])]
+
+		return ret
+
+	def policy_min(self, agentEnv):
+		stacks = agentEnv['card_stacks']
+		ret = np.argmin([count_nimmts(s) for s in stacks])
+
+		return ret

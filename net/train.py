@@ -14,6 +14,7 @@ from agents.RandomAgent import RandomAgent
 from agents.YXJAgent import EasiestAgent
 from agents.NNAgent import NNAgent
 import pyrl.common
+from pyrl.common import num_agent_init_card
 import random;
 from pyrl.BaseAgent import BaseAgent
 from IPython import embed
@@ -38,6 +39,13 @@ for round in range(10):
 Gamma = 0.9
 Epsilon = 0.1
 
+def weight_choice(weight):
+    t = random.randint(0, int(sum(weight)) - 1)
+    for i, val in enumerate(weight):
+        t -= val
+        if t < 0:
+            return i
+
 
 data_pool = [];
 def load_data(EPOCH):
@@ -45,8 +53,10 @@ def load_data(EPOCH):
     old_pool = data_pool;
     random.shuffle(old_pool);
     data = []; label = [];
-    data_pool = [{'state':Env.generate_midgame_env(random.randint(0, pyrl.common.num_agent_init_card - 1))} for i in range( 50 )];
-    data_pool += old_pool[:100];
+    #weight_list = [1.5**i for i in range(num_agent_init_card)]
+    weight_list = [1 for i in range(num_agent_init_card)]
+    data_pool = [{'state':Env.generate_midgame_env(weight_choice(weight_list))} for i in range( 200 )];
+    data_pool += random.sample(old_pool, min(len(old_pool),900));
     for i in range(len(data_pool)) :
         hand_cards = data_pool[i]['state']['hand_cards'][0]
         data_pool[i]['action'] = hand_cards[random.randint(0, len(hand_cards)-1)]
@@ -84,8 +94,9 @@ def load_data(EPOCH):
 
 if __name__ == "__main__":
     model = get_model()
+    model.load_weights("models/best_3.h5")
     Env = GameEmulator();
-    #Env.add_agent(NNAgent(model = model))
+    Env.add_agent(NNAgent(model = model))
     Env.add_agent(EasiestAgent())
     Env.add_agent(EasiestAgent())
 
@@ -93,13 +104,13 @@ if __name__ == "__main__":
 
     #keras.callbacks.EarlyStopping(monitor='val_loss', patience=0, verbose=0)
 
-    prop = RMSprop( lr=0.00003, rho=0.9, epsilon=1e-6 )
+    prop = RMSprop( lr=0.00001, rho=0.9, epsilon=1e-6 )
     print( "start compilation" )
     model.compile(loss='mean_squared_error', optimizer=prop)
 
     random.seed(time.time())
 
-    for EPOCH in range( 300 ) :
+    for EPOCH in range( 10000 ) :
         print( "DEALING EPOCH " + str( EPOCH ) );
         if EPOCH != 0 :
             print( "generating data" )
@@ -113,7 +124,7 @@ if __name__ == "__main__":
             #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
             print( "start fitting" )
             time1 = time.time()
-            his = model.fit(data, label, batch_size=50,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
+            his = model.fit(data, label, batch_size=300,nb_epoch=1,shuffle=True,verbose=1,show_accuracy=False,validation_split=0.1)
             time2 = time.time()
             print("use time:", time2 - time1)
             print( "fitting ended" )

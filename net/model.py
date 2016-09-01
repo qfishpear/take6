@@ -5,8 +5,10 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.advanced_activations import PReLU, LeakyReLU
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.initializations import normal
 from keras.optimizers import SGD, Adadelta, Adagrad, RMSprop
 from keras.utils import np_utils, generic_utils
+from keras.regularizers import activity_l2, l2
 from IPython import embed
 import sys;
 sys.path.append( '..' )
@@ -15,6 +17,8 @@ from pyrl.common import count_nimmts, num_nimmt, num_cards
 import itertools
 import random
 import numpy as np
+import pdb
+
 # def normalize(dat) :
 #     bits = [];
 #     status = [[0 for col in range(104)] for row in range(3)]
@@ -53,11 +57,70 @@ import numpy as np
 
 random.seed(2333)
 num_base_ind = 29
-ind_2_100 = random.sample(list(itertools.permutations(range(num_base_ind),2)),50)
-ind_3_100 = random.sample(list(itertools.permutations(range(num_base_ind),3)),50)
-ind_3_100 = random.sample(list(itertools.permutations(range(num_base_ind),4)),50)
+ind_2 = random.sample(list(itertools.permutations(range(num_base_ind),2)),50)
+ind_3 = random.sample(list(itertools.permutations(range(num_base_ind),3)),50)
+ind_3 = random.sample(list(itertools.permutations(range(num_base_ind),4)),50)
+def toint(t):
+    return int(t)*2-1
 
-def normalize(dat) :
+def normalize(dat):
+    return normalize_dr(dat)
+
+def get_model():
+    return get_model_dr()
+
+def normalize_dr(dat):
+    card = dat['action']
+    card_stacks = np.array(dat['state']['card_stacks'])
+    #card_status = dat['state']['card_status']
+    agent_id = dat['state']['agent_id']
+    hand_card = dat['state']['hand_cards'][agent_id]
+    tmp = []
+    tmp.append(card*1.0/num_cards)
+    tmp.append(min(count_nimmts(s) for s in card_stacks))
+    choices = card_stacks[np.array([s[-1] < card for s in card_stacks])]
+    next = num_cards
+    for s in card_stacks:
+        if s[-1] > card:
+            next = min(next, s[-1])
+    if card != hand_card[-1]:
+        next = min(next, hand_card.index(card)+1)
+    tmp.append(next*1.0/num_cards)
+    if len(choices) > 0:
+        stack = choices[np.argmax([s[-1] for s in choices])]
+        tmp.append(stack[-1])
+        tmp.append(count_nimmts(stack))
+        tmp.append(count_nimmts([card,]))
+        tmp.append(toint(len(stack) == 5))
+        tmp.append(toint(len(stack) == 4))
+        tmp.append(toint(len(stack) <= 3))
+        tmp.append((6-len(stack))/5)
+    else:
+        tmp += [0,]*7
+    l = len(tmp)
+    bits = [] + tmp
+    bits += [tmp[i] * tmp[j] for i in range(l) \
+             for j in range(i, l)]
+    bits += [tmp[i] * tmp[j] * tmp[k] for i in range(l) \
+             for j in range(i, l) for k in range(j, l)]
+    bits += [tmp[i] * tmp[j] * tmp[k] * tmp[p] for i in range(l) \
+            for j in range(i, l) for k in range(j, l) for p in range(k, l)]
+    return bits
+
+def my_init(shape, name=None):
+    return normal(shape, scale=0.0001, name=name)
+
+def get_model_dr():
+    model = Sequential()
+
+    model.add(Dense(200, init=my_init, input_dim = 1000))#, W_regularizer=l2(0.000001)))
+    model.add(Activation("relu"))
+
+    model.add(Dense(1, init=my_init))#, W_regularizer=l2(0.000001)))
+    return model
+
+
+def normalize_fish(dat):
     bits = [];
     action = dat['action']
     card_stacks = dat['state']['card_stacks']
@@ -95,13 +158,13 @@ def normalize(dat) :
     for i in range(20):
         for j in range(20, num_base_ind):
             bits.append(int(tmp[i] and tmp[j]))
-    i2 = ind_2_100
-    i3 = ind_3_100
-    i4 = ind_3_100
+    i2 = ind_2
+    i3 = ind_3
+    i4 = ind_3
     for i in range(50):
-        bits.append(int(tmp[i2[i][0]] and tmp[i2[i][1]]))
-        bits.append(int(tmp[i3[i][0]] and tmp[i3[i][1]] and tmp[i3[i][2]]))
-        bits.append(int(tmp[i4[i][0]] and tmp[i4[i][1]] and tmp[i4[i][2]] and tmp[i4[i][3]]))
+        bits.append(toint(tmp[i2[i][0]] and tmp[i2[i][1]]))
+        bits.append(toint(tmp[i3[i][0]] and tmp[i3[i][1]] and tmp[i3[i][2]]))
+        bits.append(toint(tmp[i4[i][0]] and tmp[i4[i][1]] and tmp[i4[i][2]] and tmp[i4[i][3]]))
 
     status_bucket = [[0 for col in range(13)] for row in range(3)]
     #every 13 in a bucket
@@ -127,7 +190,7 @@ def normalize(dat) :
     return bits
 
 
-def get_model():
+def get_model_fish():
     model = Sequential()
 
     model.add(Dense(1024, init='normal', input_dim = 460))

@@ -5,6 +5,7 @@ import random
 import BaseAgent
 import sys
 import numpy as np
+import time
 sys.path.append('..')
 from agents.RandomAgent import RandomAgent
 from agents.KeyboardAgent import KeyboardAgent
@@ -35,7 +36,7 @@ class GameEmulator(object):
             'card_stacks': card_stacks,
             'hand_cards' : hand_cards,
             'card_status': card_status,
-            'agent_id': -1,
+            'agent_id': 0,
             'scores' :  [0,] * self.num_agents
         }
 
@@ -77,13 +78,13 @@ class GameEmulator(object):
         for card in hand_cards[0]:
             card_status[card] = 1
         game_env['scores'] = [scores[i] + punishments[i] for i in range(self.num_agents)]
+        game_env["agent_id"] = 0
         return game_env, punishments
 
     def generate_midgame_env(self, num_round = num_agent_init_card):
         #指定num_round可以返回特定轮数过后的局面,默认为玩完一整局
         game_env = self.generate_init_env()
         for j in range(num_round):
-            game_env["agent_id"] = 0
             action0 = self.agent_list[0].policy(game_env)
             game_env, punishments = self.execute_action(game_env, action0)
         return game_env
@@ -101,6 +102,7 @@ class GameEmulator(object):
         print cnt_win
 
     def test_66(self, num_round=100):
+        random.seed(time.time())
         cnt_win = [0, ] * len(self.agent_list)
         for i in range(num_round):
             scores = [0,] * len(self.agent_list)
