@@ -37,25 +37,29 @@ class GameEmulator(object):
             'hand_cards' : hand_cards,
             'card_status': card_status,
             'agent_id': -1,
-            'scores' :  [0,] * self.num_agents
+            'scores' :  [0,] * self.num_agents,
+            'history' : []
         }
 
 
-    def execute_action(self, game_env, action):
+    def execute_action(self, game_env, action, agent_id = 0):
         #返回新的game_env和每个人获得的牛头数punishments
         game_env = copy.deepcopy(game_env)
         card_stacks = game_env['card_stacks']
         hand_cards = game_env['hand_cards']
         card_status = game_env['card_status']
         scores = game_env['scores']
-        actions = [(action,0)]
-        for i in range(1, self.num_agents):
+        actions = [(action,agent_id)]
+        for i in range(self.num_agents):
+            if i == agent_id:
+                continue
             game_env["agent_id"] = i
             for card in hand_cards[i-1]:
                 card_status[card] = 0
             for card in hand_cards[i]:
                 card_status[card] = 1
             actions.append((self.agent_list[i].policy(game_env), i))
+        game_env['history'].append(sorted(actions, key=lambda x: x[1]))
         tmp = sorted(actions)
         punishments = [0,] * self.num_agents
         for i in range(self.num_agents):
