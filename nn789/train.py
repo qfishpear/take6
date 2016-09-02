@@ -46,7 +46,7 @@ def load_data(EPOCH):
     random.shuffle(old_pool);
     data = []; label = [];
     #data_pool = [{'state':Env.generate_midgame_env(random.randint(0, pyrl.common.num_agent_init_card - 1))} for i in range( 100 )];
-    data_pool = [{'state':Env.generate_midgame_env(random.randint(7, 9))} for i in range( 100 )];
+    data_pool = [{'state':EasiestEnv.generate_midgame_env(random.randint(0, 9))} for i in range( 300 )];
     data_pool += old_pool[:200];
     for i in range(len(data_pool)) :
         hand_cards = data_pool[i]['state']['hand_cards'][0]
@@ -90,6 +90,12 @@ def load_data(EPOCH):
 if __name__ == "__main__":
     model = get_model()
 
+    if len(sys.argv) > 1 :
+        Conti = sys.argv[1]
+        model.load_weights('models/md' + Conti + '.h5');
+    else :
+        Conti = '0'
+
     Env = GameEmulator();
     Env.add_agent(NNAgent(model = model))
     Env.add_agent(EasiestAgent())
@@ -100,13 +106,13 @@ if __name__ == "__main__":
 
     #keras.callbacks.EarlyStopping(monitor='val_loss', patience=0, verbose=0)
 
-    prop = RMSprop( lr=0.00003, rho=0.9, epsilon=1e-6 )
+    prop = RMSprop( lr=0.0003, rho=0.9, epsilon=1e-6 )
     print( "start compilation" )
     model.compile(loss='mean_squared_error', optimizer=prop)
 
     random.seed(time.time())
 
-    for EPOCH in range( 3000 ) :
+    for EPOCH in range( int(Conti), 10001 ) :
         print( "DEALING EPOCH " + str( EPOCH ) );
         if EPOCH != 0 :
             print( "generating data" )
