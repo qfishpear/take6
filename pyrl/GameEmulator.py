@@ -4,6 +4,7 @@ import copy
 import random
 import BaseAgent
 import sys
+import time;
 import numpy as np
 sys.path.append('..')
 from agents.RandomAgent import RandomAgent
@@ -111,6 +112,7 @@ class GameEmulator(object):
         print cnt_win
 
     def test_66(self, num_round=100):
+        random.seed(time.time())
         cnt_win = [0, ] * len(self.agent_list)
         for i in range(num_round):
             scores = [0,] * len(self.agent_list)
