@@ -60,7 +60,9 @@ def load_data(EPOCH):
     for i in range(len(data_pool)) :
         hand_cards = data_pool[i]['state']['hand_cards'][0]
         data_pool[i]['action'] = hand_cards[random.randint(0, len(hand_cards)-1)]
-    #model = keras.models.model_from_json(open('models/md.json', 'r').read());
+    #model = keras.models.model_from_json(open('model
+
+    # s/md.json', 'r').read());
     #model.load_weights('models/md' + str(EPOCH-1) + '.h5');
     old_pool = [];
     for dat in data_pool :  ### data is (state_t, action_t) tuple.
@@ -87,16 +89,16 @@ def load_data(EPOCH):
 
         toFeed = np.array(toFeed)
         nextQ = model.predict(toFeed);
-        #nextQ_by_emulation = Env.get_Q(state_next, Gamma)
+        nextQ_by_emulation = Env.get_Q(state_next, Gamma)
         data.append(normalize(dat))
         #print(max(nextQ), nextQ_by_emulation, max(nextQ) + nextQ_by_emulation)
-        label.append(reward + Gamma * (max(nextQ)[0] ))
+        label.append(reward + Gamma * nextQ_by_emulation)
     return data,label,old_pool
 
 
 if __name__ == "__main__":
     model = get_model()
-    #model.load_weights("models/best_3.h5")
+    model.load_weights("models/best_1.h5")
     Env = GameEmulator();
     Env.add_agent(NNAgent(model = model))
     #Env.add_agent(EasiestAgent())

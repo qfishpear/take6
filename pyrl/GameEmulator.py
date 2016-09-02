@@ -38,7 +38,8 @@ class GameEmulator(object):
             'card_status': card_status,
             'agent_id': 0,
             'scores' :  [0,] * self.num_agents,
-            'cur_round': 0
+            'cur_round': 0,
+            'history': []
         }
 
 
@@ -49,6 +50,7 @@ class GameEmulator(object):
         hand_cards = game_env['hand_cards']
         card_status = game_env['card_status']
         scores = game_env['scores']
+        history = game_env['history']
         actions = [(action,0)]
         for i in range(1, self.num_agents):
             game_env["agent_id"] = i
@@ -57,6 +59,7 @@ class GameEmulator(object):
             for card in hand_cards[i]:
                 card_status[card] = 1
             actions.append((self.agent_list[i].policy(game_env), i))
+        history.append([t[0] for t in actions])
         tmp = sorted(actions)
         punishments = [0,] * self.num_agents
         for i in range(self.num_agents):
@@ -97,15 +100,16 @@ class GameEmulator(object):
         for j in range(num_agent_init_card - game_env['cur_round']):
             action0 = self.agent_list[0].policy(game_env)
             game_env, punishments = self.execute_action(game_env, action0)
-            Q += w * punishments[0]
+            Q += w * (sum(punishments[1:]) - punishments[0])
             w *= Gamma
-        return -Q
+        return Q
 
     def emulate(self, num_round = 1):
         for i in range(num_round):
            print self.generate_midgame_env(num_agent_init_card)["scores"]
 
     def test_single(self, num_round = 100):
+        random.seed(time.time())
         cnt_win = [0,] * len(self.agent_list)
         for i in range(num_round):
             scores = self.generate_midgame_env(num_agent_init_card)["scores"]

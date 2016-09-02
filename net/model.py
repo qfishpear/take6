@@ -64,10 +64,10 @@ def toint(t):
     return int(t)*2-1
 
 def normalize(dat):
-    return normalize_dr(dat)
+    return normalize_fish(dat)
 
 def get_model():
-    return get_model_dr()
+    return get_model_fish()
 
 def normalize_dr(dat):
     card = dat['action']
@@ -195,15 +195,16 @@ def get_model_fish():
 
     model.add(Dense(1024, init='normal', input_dim = 460))
     model.add(LeakyReLU(0.3))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.2))
+
 
     model.add(Dense(1024, init='normal'))
     model.add(LeakyReLU(0.3))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.2))
 
     model.add(Dense(512, init='normal'))
     model.add(LeakyReLU(0.3))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.2))
 
     model.add(Dense(1, init='normal'))
     return model
