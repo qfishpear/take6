@@ -115,9 +115,9 @@ public:
             for (int j = 0; j < num_players; ++j) {
                 int id = args[j];
                 int card = choice[id];
-                if (env->push(j, card)) {
-                    int sid = agents[id]->policy_min(j, i + 1, env->show_handcards(j), num_players, NUM_CARDS, playeds);
-                    env->push(j, card, sid);
+                if (env->push(id, card)) {
+                    int sid = agents[id]->policy_min(id, i + 1, env->show_handcards(id), num_players, NUM_CARDS, playeds);
+                    env->push(id, card, sid);
                 }
             }
         }
@@ -139,11 +139,8 @@ int main(int argc, char **argv) {
 
     vector<Agent *> agents;
     Table *table = new Table();
-    EasiestAgent *a = new EasiestAgent();
-    EasiestAgent *b = new EasiestAgent();
-    NaiveAgent1v1 *c = new NaiveAgent1v1();
-    agents.push_back(a);
-    agents.push_back(c);
+    agents.push_back(new EasiestAgent);
+    agents.push_back(new NaiveAgent1v1);
 
     int cnt = 0;
     for (int i = 1; i <= 500; ++i) {
