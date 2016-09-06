@@ -1,5 +1,7 @@
 #include "agent.h"
 #include "agent.cpp"
+#include "agentx.cpp"
+#include "kbdagent.cpp"
 #include "agent_easiest.h"
 #include <ctime>
 #include <vector>
@@ -9,6 +11,8 @@
 #include <iostream>
 #include <algorithm>
 using namespace std;
+
+int debug;
 
 class Table {
 private:
@@ -95,8 +99,34 @@ public:
 		for (int i = 0; i < NUM_ROUNDS; ++i) {
 			env->to_playeds(playeds);
 			for (int j = 0; j < num_players; ++j) {
-				choice[j] = agents[j]->policy(j, i, env->show_handcards(j), num_players, NUM_CARDS, playeds);
+				choice[j] = agents[j]->policy(j, i, env->show_handcards(j), num_players, NUM_CARDS, playeds, env->score);
 				args[j] = j;
+			}
+			if (debug) {
+				printf("current stacks : \n");
+				for (int i = 0; i < NUM_STACKS; ++i) {
+					for (int j = 0; j < env->stacks[i].size(); ++j)
+					printf("%d ", env->stacks[i][j]);
+					printf("\n");
+				}
+				vector <int> r;
+				printf("A handcards : [choice %d] ", choice[0]);
+				r = env->show_handcards(0); 
+				for (int i = 0; i < env->handcards[0].size(); ++i) {
+					printf("%d ", r[i]);
+				}
+				printf("\n");
+				printf("B handcards : [choice %d] ", choice[1]);
+				r = env->show_handcards(1);
+				for (int i = 0; i < env->handcards[1].size(); ++i) {
+					printf("%d ", r[i]);
+				}
+				printf("\n");
+				printf("scores : ");
+				for (int i = 0; i < num_players; ++i)
+					printf("%d ", env->score[i]);
+				printf("\n");
+				getchar();
 			}
 			for (int j = 0; j < num_players; ++j)
 				for (int k = 1; k < num_players; ++k)
@@ -110,9 +140,9 @@ public:
 			for (int j = 0; j < num_players; ++j) {
 				int id = args[j];
 				int card = choice[id];
-				if (env->push(j, card)) {
-					int sid = agents[id]->policy_min(j, i + 1, env->show_handcards(j), num_players, NUM_CARDS, playeds);
-					env->push(j, card, sid);
+				if (env->push(id, card)) {
+					int sid = agents[id]->policy_min(id, i + 1, env->show_handcards(id), num_players, NUM_CARDS, playeds, env->score);
+					env->push(id, card, sid);
 				}
 			}
 		}
@@ -121,28 +151,35 @@ public:
 	vector <int> run66(vector <Agent*> agents) {
 		vector <int> score;
 		score.resize(agents.size());
-		while (*max_element(score.begin(), score.end()) < 66)
+		while (*max_element(score.begin(), score.end()) < 66) {
 			score = sum_score(score, run(agents));
+			//printf("[%2d %2d]->", score[0], score[1]);
+		}
 		
 		return score;
 	}
 };
 
 int main(int argc, char **argv) {
-	srand((unsigned)time(NULL));
+	//srand((unsigned)time(NULL));
+	
+	if (argc == 2  &&  argv[1][0] == 'd')
+		debug = 1;
 	
 	vector <Agent*> agents;
 	Table *table = new Table();
-	EasiestAgent *a = new EasiestAgent();
-	EasiestAgent *b = new EasiestAgent();
-	NaiveAgent1v1 *c = new NaiveAgent1v1();
+	Agent *a = new EasiestAgent2();
+	Agent *b = new EasiestAgent();
+	Agent *c = new NaiveAgent1v1();
+	Agent *d = new KbdAgent();
+	Agent *e = new XAgent();
 	agents.push_back(a);
 	agents.push_back(c);
 	
 	int cnt = 0;
-	for (int i = 1; i <= 500; ++i) {
+	for (int i = 1; i <= 10000; ++i) {
 		vector <int> score = table->run66(agents);
 		cnt += score[0] < score[1];
-		printf("this game [%d %d], total [%d %d]\n", score[0], score[1], cnt, i - cnt);
+		printf("this game [%2d %2d], total [%d %d]\n", score[0], score[1], cnt, i - cnt);
 	}
 }

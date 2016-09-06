@@ -10,15 +10,16 @@ using namespace std;
 
 class NaiveAgent1v1 : public Agent {
 private:
-	int stor_arr[1010], *stor;
+	int stor_arr[2010], *stor;
 	int handcards[10], num_handcards;
 	int pre_sum[110], tot_cards;
 	int stor_min_id_nimmts;
 	int bar[20];
 	bool shows[110];
 	int _;
-	int stor_segs_card[5][110];
-	double stor_segs_prob[5][110];
+	int maxdepth;
+	int stor_segs_card[10][110];
+	double stor_segs_prob[10][110];
 	struct Env {
 		int *stacks[NUM_STACKS], nimmts[NUM_STACKS], scores[NUM_PLAYERS];
 
@@ -48,15 +49,17 @@ private:
 			else {
 				for (int i = 0; i <= s[0]; ++i)
 					stor[i] = s[i];
+				stor[0]++;
+				stor[stor[0]] = card;
 				nimmts[sid] += NIMMTS[card];
 			}
 			stacks[sid] = stor;
 			scores[pid] += punish;
 		}
 	};
-	Env *env, stor_env[5];
+	Env *env, stor_env[10];
 
-	inline double evaluate(Env *env, const int &card, const int &next_card) {
+	inline double evaluate(Env *env, const int &card, int next_card) {
 		int sid = env->to(card);
 		double e = 0;
 		if (sid == -1)
@@ -67,6 +70,9 @@ private:
 				e = (1.0 - (double) (pre_sum[card - 1] - pre_sum[s[s[0]]]) / tot_cards) * env->nimmts[sid];
       else {
         e = (-0.1 + pre_sum[card - 1] - pre_sum[s[s[0]]]) / tot_cards / (STACK_DEPTH - s[0]) * env->nimmts[sid];
+		for (int i = 0; i < NUM_STACKS; ++i)
+			if (env->stacks[i][env->stacks[i][0]] > card)
+				next_card = min(next_card, env->stacks[i][env->stacks[i][0]]);
         if (s[0] == 4)
           e -= (double) (pre_sum[next_card - 1] - pre_sum[card]) / tot_cards * (env->nimmts[sid] + NIMMTS[card]);
         else
@@ -79,7 +85,7 @@ private:
 		stor_min_id_nimmts = env->min_id();
 		int cnt = 0, num = 0;
 		double mini = 1e10;
-    bar[0] = 0;
+		bar[0] = 0;
 		for (int i = 0; i < num_handcards; ++i)
 			bar[++num] = handcards[i];
 		for (int i = 0; i < NUM_STACKS; ++i)
@@ -97,27 +103,20 @@ private:
 			if (mdc == -1)
 				continue;
 			card[cnt] = mdc;
-			prob[cnt] = -evaluate(env, mdc, mdc + 13) * (pre_sum[bar[i + 1] - 1] - pre_sum[bar[i]]) / tot_cards;
+			prob[cnt] = (double) (pre_sum[bar[i + 1] - 1] - pre_sum[bar[i]]) / tot_cards;
 			mini = min(mini, prob[cnt]);
 			++cnt;
 		}
+		
 		double tot = 0;
-		for (int i = 0; i < cnt; ++i) {
-			prob[i] = (prob[i] - mini + fabs(mini) * 0.1);
-      prob[i] = prob[i] * prob[i];
-			tot += prob[i];
-		}
-		for (int i = 0; i < cnt; ++i)
-			prob[i] = prob[i] / tot;
 		return cnt;
 	}
 	double search(int depth, Env *env) {
 		double ret = -1e10;
-		if (depth == 3  ||  num_handcards == 0) {
+		if (depth == maxdepth  ||  num_handcards == 0) {
 			ret = env->scores[1] - env->scores[0];
-			stor_min_id_nimmts = env->min_id();
 			for (int i = 0; i < num_handcards; ++i)
-				ret -= evaluate(env, handcards[i], i == num_handcards - 1 ? NUM_CARDS : handcards[i + 1]) / num_handcards;
+				ret -= evaluate(env, handcards[i], i == num_handcards - 1 ? NUM_CARDS + 1 : handcards[i + 1]) / num_handcards;
 			return ret;
 		}
 		Env *temp = stor_env + depth;
@@ -135,16 +134,24 @@ private:
 			for (int j = 0; j < num_segs; ++j) {
 				r_card = segs_card[j], prob = segs_prob[j];
 				*temp = *env;
-				if (r_card < card)
-					temp->push(r_card, 1, stor), stor += STACK_DEPTH + 1, temp->push(card, 0, stor), stor += STACK_DEPTH + 1;
-				else
-					temp->push(card, 0, stor), stor += STACK_DEPTH + 1, temp->push(r_card, 1, stor), stor += STACK_DEPTH + 1;
+				if (r_card < card) {
+					temp->push(r_card, 1, stor);
+					stor += STACK_DEPTH + 1;
+					temp->push(card, 0, stor);
+					stor += STACK_DEPTH + 1;
+				}
+				else {
+					temp->push(card, 0, stor);
+					stor += STACK_DEPTH + 1;
+					temp->push(r_card, 1, stor);
+					stor += STACK_DEPTH + 1;
+				}
 
 				shows[r_card] = 1, shows[card] = 1;
 				e += search(depth + 1, temp) * prob;
 				shows[r_card] = 0, shows[card] = 0;
 				stor -= STACK_DEPTH + 1;
-        stor -= STACK_DEPTH + 1;
+				stor -= STACK_DEPTH + 1;
 			}
 			num_handcards++;
 			for (int j = num_handcards - 1; j > i; --j)
@@ -200,14 +207,29 @@ public:
 			pre_sum[i] = pre_sum[i - 1] + (shows[i] == 0);
 			tot_cards += shows[i] == 0;
 		}
+		
+		maxdepth = max(num_handcards - 1, 1);
+		if (num_handcards >= 6)
+			maxdepth = 4;
+		if (num_handcards >= 8)
+			maxdepth = 3;
+		
+		//-------------------------------------
+		
+		if (0) {
+			printf("NaiveAgent1v1 handcards : ");
+			for (int i = 0; i < num_handcards; ++i) {
+				printf("%d ", handcards[i]);
+			}
+			printf("\n");
+		}
 	}
-	int policy(int pid, int rd, vector <int> handcards, int num_players, int num_cards, vector <int> cards) {
+	int policy(int pid, int rd, vector <int> handcards, int num_players, int num_cards, vector <int> cards, vector <int> scores) {
 		Init(pid, rd, handcards, num_players, num_cards,cards, 0);
 		int ret = (int) (search(0, env) + 1e-5);
-    //printf("got one!");
 		return ret;
 	}
-	int policy_min(int pid, int rd, vector <int> handcards, int num_players, int num_cards, vector <int> cards) {
+	int policy_min(int pid, int rd, vector <int> handcards, int num_players, int num_cards, vector <int> cards, vector <int> scores) {
 		Init(pid, rd, handcards, num_players, num_cards, cards, 1);
 		return env->min_id();
 	}
